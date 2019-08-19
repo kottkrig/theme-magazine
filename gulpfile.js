@@ -5,24 +5,21 @@ var inject = require("gulp-inject");
 var sass = require("gulp-sass");
 var importCss = require("gulp-import-css");
 var autoprefixer = require("gulp-autoprefixer");
-var sourcemaps = require("gulp-sourcemaps");
 var concat = require("gulp-concat");
 var cssmin = require("gulp-cssmin");
-var watch = require("gulp-watch");
 var swPrecache = require("sw-precache");
 var uglify = require("gulp-uglify");
 var replace = require("gulp-replace");
 
-gulp.task("version", function() {
+function version() {
   var time = new Date().getTime();
   return gulp
     .src(["views/base.html.twig"])
     .pipe(replace(/version\s=\s\'\d*\'/g, "version = '" + time + "'"))
     .pipe(gulp.dest("views"));
-});
+}
 
-// service worker generator
-gulp.task("sw", function(callback) {
+function sw(callback) {
   var packageJson = require("./package.json");
   var bundleUrl = "/public/";
 
@@ -65,11 +62,11 @@ gulp.task("sw", function(callback) {
     },
     callback
   );
-});
+}
 
-gulp.task("sass", function() {
+function styles() {
   return gulp
-    .src("public/dist/style.scss")
+    .src("public/dist/style.scss", { sourcemaps: true })
     .pipe(
       inject(
         gulp.src(["public/css/**/*.css", "public/css/**/*.+(sass|scss)"], {
@@ -85,43 +82,53 @@ gulp.task("sass", function() {
         }
       )
     )
-    .pipe(sourcemaps.init())
     .pipe(sass.sync().on("error", sass.logError))
-    .pipe(sourcemaps.write("./"))
-    .pipe(gulp.dest("public/dist/"));
-});
+    .pipe(gulp.dest("public/dist/", { sourcemaps: "." }));
+}
 
-gulp.task("js", function() {
+function scripts() {
   return gulp
-    .src(["public/js/vendor/**/*.js", "public/js/scripts/**/*.js"])
-    .pipe(sourcemaps.init())
+    .src(["public/js/vendor/**/*.js", "public/js/scripts/**/*.js"], {
+      sourcemaps: true
+    })
     .pipe(concat("all.js"))
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest("public/dist"));
-});
+    .pipe(gulp.dest("public/dist", { sourcemaps: "." }));
+}
 
-gulp.task("cssmin", ["sass"], function() {
+function minifyStyles() {
   return gulp
     .src("public/dist/style.css")
     .pipe(importCss())
     .pipe(autoprefixer({ browsers: ["last 2 version"], cascade: false }))
     .pipe(cssmin())
     .pipe(gulp.dest("public/dist"));
-});
+}
 
-gulp.task("jsmin", ["js"], function() {
+function minifyScripts() {
   return gulp
     .src("public/dist/all.js")
     .pipe(uglify())
     .pipe(gulp.dest("public/dist"));
-});
+}
 
-gulp.task("build", ["sass", "js", "cssmin", "jsmin", "version", "sw"]);
+var build = gulp.series(
+  styles,
+  scripts,
+  minifyStyles,
+  minifyScripts,
+  version,
+  sw
+);
 
-gulp.task("watch", function() {
+function watch() {
   //empty service worker
   require("fs").writeFileSync("public/sw.js", "");
-  //
-  gulp.watch("public/css/**/*.+(css|sass|scss)", ["sass"]);
-  gulp.watch("public/js/**/*.js", ["js"]);
-});
+
+  gulp.watch("public/css/**/*.+(css|sass|scss)", styles);
+  gulp.watch("public/js/**/*.js", scripts);
+}
+
+exports.watch = watch;
+exports.build = build;
+
+exports.default = build;

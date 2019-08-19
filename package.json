@@ -10,9 +10,7 @@
     "gulp-inject": "*",
     "gulp-replace": "*",
     "gulp-sass": "*",
-    "gulp-sourcemaps": "*",
     "gulp-uglify": "*",
-    "gulp-watch": "*",
     "node-sass": "*",
     "sw-precache": "*",
     "sw-toolbox": "*"
